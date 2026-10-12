@@ -1,146 +1,151 @@
 "use client";
-import React, { useEffect, useRef } from "react";
+
+import React from "react";
+import SectionHeading from "./SectionHeading";
 import {
-    ChevronRight,
     AlertCircle,
+    Droplets,
+    Fish,
     Shield,
     Sun,
     Thermometer,
-    Droplets,
-    Fish,
+    type LucideIcon,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface Consequence {
+    title: string;
+    description: string;
+    icon: LucideIcon;
+    iconTone: string;
+    cardTone: string;
+}
+
+const CONSEQUENCES: Consequence[] = [
+    {
+        title: "Increased UV radiation",
+        description:
+            "Every 1% drop in ozone lets roughly 2% more UV-B through. That radiation reaches the ground with enough energy to break DNA bonds directly.",
+        icon: Sun,
+        iconTone: "text-warn-300",
+        cardTone: "from-warn-500/12",
+    },
+    {
+        title: "Human health risks",
+        description:
+            "Higher rates of melanoma and other skin cancers, cataracts and clouded corneas, plus measurable suppression of the immune response in skin.",
+        icon: Shield,
+        iconTone: "text-danger-300",
+        cardTone: "from-danger-500/12",
+    },
+    {
+        title: "Shifted climate patterns",
+        description:
+            "A cooler stratosphere over Antarctica strengthens the polar vortex, nudging the southern jet stream and changing rainfall far from the pole.",
+        icon: Thermometer,
+        iconTone: "text-orange-300",
+        cardTone: "from-orange-500/12",
+    },
+    {
+        title: "Crop damage",
+        description:
+            "UV-B stress reduces leaf area and disrupts photosynthesis. Staples such as rice, wheat and soy show lower yields and altered nutrient content.",
+        icon: Droplets,
+        iconTone: "text-safe-300",
+        cardTone: "from-safe-500/12",
+    },
+    {
+        title: "Marine ecosystem disruption",
+        description:
+            "Phytoplankton live in the sunlit surface layer and cannot escape UV-B. Losing them weakens the entire food web and the ocean's carbon uptake.",
+        icon: Fish,
+        iconTone: "text-ozone-300",
+        cardTone: "from-ozone-500/12",
+    },
+];
 
 const Consequences: React.FC = () => {
-    const sectionRef = useRef<HTMLElement>(null);
-
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add("section-visible");
-                    }
-                });
-            },
-            { threshold: 0.1 }
-        );
-
-        if (sectionRef.current) {
-            observer.observe(sectionRef.current);
-        }
-
-        return () => {
-            if (sectionRef.current) {
-                observer.unobserve(sectionRef.current);
-            }
-        };
-    }, []);
-
-    const consequences = [
-        {
-            title: "Increased UV Radiation",
-            description:
-                "Higher levels of harmful UV-B radiation reach Earth's surface, leading to various health and environmental issues.",
-            icon: <Sun className="h-10 w-10 text-yellow-400" />,
-            color: "from-yellow-500/20 to-yellow-600/5",
-        },
-        {
-            title: "Human Health Risks",
-            description:
-                "More cases of skin cancer, cataracts, and weakened immune systems due to increased UV exposure.",
-            icon: <Shield className="h-10 w-10 text-red-400" />,
-            color: "from-red-500/20 to-red-600/5",
-        },
-        {
-            title: "Climate Change Effects",
-            description:
-                "Ozone depletion can impact atmospheric circulation patterns, contributing to climate change.",
-            icon: <Thermometer className="h-10 w-10 text-orange-400" />,
-            color: "from-orange-500/20 to-orange-600/5",
-        },
-        {
-            title: "Crop Damage",
-            description:
-                "Reduced agricultural yields as increased UV radiation harms plant growth and photosynthesis processes.",
-            icon: <Droplets className="h-10 w-10 text-green-400" />,
-            color: "from-green-500/20 to-green-600/5",
-        },
-        {
-            title: "Marine Ecosystem Disruption",
-            description:
-                "Phytoplankton productivity decreases, affecting the entire marine food chain and reducing oceanic carbon dioxide absorption.",
-            icon: <Fish className="h-10 w-10 text-blue-400" />,
-            color: "from-blue-500/20 to-blue-600/5",
-        },
-    ];
-
     return (
         <section
             id="consequences"
-            ref={sectionRef}
-            className="py-20 md:py-32 bg-gradient-to-b from-slate-900 to-black section-fade-in"
+            className="section-veil-cool scroll-mt-24 py-16 md:py-24"
         >
-            <div className="container mx-auto px-4">
-                <div className="text-center mb-16">
-                    <span className="inline-block text-sm font-semibold text-red-400 uppercase tracking-wider mb-2">
-                        Why It Matters
-                    </span>
-                    <h2 className="text-3xl md:text-4xl font-bold text-white">
-                        Consequences of Ozone Depletion
-                    </h2>
-                    <p className="mt-4 text-lg text-white/70 max-w-2xl mx-auto">
-                        When our protective shield weakens, several serious
-                        effects impact life on Earth.
-                    </p>
-                </div>
+            <div className="container-page">
+                <SectionHeading
+                    className="reveal mb-10 md:mb-12"
+                    eyebrow="Why it matters"
+                    title="Consequences of Depletion"
+                    description="The ozone layer is three millimetres thick if compressed to sea-level pressure. Thinning it changes conditions for everything living underneath."
+                    tone="warn"
+                />
 
-                <div className="max-w-4xl mx-auto">
-                    <div className="relative pl-8 border-l border-white/10">
-                        {consequences.map((item, index) => (
-                            <div
-                                key={index}
-                                className="mb-14 relative animate-fade-in"
-                                style={{ animationDelay: `${index * 0.2}s` }}
-                            >
-                                {/* Timeline dot */}
-                                <div className="absolute -left-[41px] rounded-full p-2 bg-gradient-radial bg-black border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.2)]">
-                                    {item.icon}
-                                </div>
+                <div className="mx-auto max-w-3xl">
+                    <ol className="relative space-y-5">
+                        {/* Connecting rail, aligned to the centre of the icon column */}
+                        <span
+                            aria-hidden="true"
+                            className="absolute left-6 top-4 bottom-4 hidden w-px bg-gradient-to-b from-warn-400/40 via-white/15 to-ozone-400/40 sm:block"
+                        />
 
-                                {/* Content */}
-                                <div
-                                    className={`pl-6 pr-4 py-6 rounded-xl bg-gradient-to-r ${item.color} backdrop-blur-sm border border-white/10 transition-transform duration-300 hover:translate-x-1`}
+                        {CONSEQUENCES.map((item, index) => {
+                            const Icon = item.icon;
+
+                            return (
+                                <li
+                                    key={item.title}
+                                    className="reveal relative grid gap-4 sm:grid-cols-[3rem_1fr] sm:gap-5"
+                                    style={
+                                        {
+                                            "--reveal-delay": `${index * 55}ms`,
+                                        } as React.CSSProperties
+                                    }
                                 >
-                                    <h3 className="text-xl font-semibold text-white mb-2 flex items-center">
-                                        {item.title}
-                                        <ChevronRight className="ml-2 h-4 w-4 text-primary/70" />
-                                    </h3>
-                                    <p className="text-white/70">
-                                        {item.description}
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                                    {/* Icon node */}
+                                    <div className="relative z-10 grid size-12 shrink-0 place-items-center rounded-2xl border border-white/15 bg-space-700 shadow-[0_0_0_4px_rgba(5,6,13,0.9)]">
+                                        <Icon
+                                            className={cn(
+                                                "size-5",
+                                                item.iconTone
+                                            )}
+                                            aria-hidden="true"
+                                        />
+                                    </div>
 
-                {/* Alert box */}
-                <div className="mt-8 max-w-4xl mx-auto p-6 rounded-xl bg-red-500/10 border border-red-500/30">
-                    <div className="flex gap-4">
-                        <div className="flex-shrink-0">
-                            <AlertCircle className="h-6 w-6 text-red-400" />
-                        </div>
-                        <div>
-                            <h4 className="text-lg font-medium text-white mb-2">
-                                This is not just a future concern
-                            </h4>
-                            <p className="text-white/70">
-                                While the Montreal Protocol has helped reduce
-                                ozone-depleting substances, the Antarctic ozone
-                                hole still forms annually, and full recovery
-                                isn't expected until around 2060-2070. The
-                                Arctic has also experienced significant ozone
-                                depletion during cold winters.
+                                    {/* Content */}
+                                    <div
+                                        className={cn(
+                                            "rounded-2xl border border-white/10 bg-gradient-to-r to-transparent p-5 backdrop-blur-sm transition-transform duration-300 hover:translate-x-1",
+                                            item.cardTone
+                                        )}
+                                    >
+                                        <h3 className="text-lg font-semibold text-white">
+                                            {item.title}
+                                        </h3>
+                                        <p className="mt-2 text-sm leading-relaxed text-white/65">
+                                            {item.description}
+                                        </p>
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ol>
+
+                    {/* Caveat */}
+                    <div className="reveal mt-10 flex gap-4 rounded-2xl border border-danger-400/25 bg-danger-500/[0.07] p-5 sm:p-6">
+                        <AlertCircle
+                            className="mt-0.5 size-5 shrink-0 text-danger-300"
+                            aria-hidden="true"
+                        />
+                        <div className="space-y-2">
+                            <h3 className="text-base font-semibold text-white">
+                                This is not only a historical problem
+                            </h3>
+                            <p className="text-sm leading-relaxed text-white/65">
+                                The Montreal Protocol worked, but the Antarctic
+                                ozone hole still opens every spring, and cold
+                                Arctic winters produce their own depletion
+                                events. Full recovery is not projected until
+                                around 2066.
                             </p>
                         </div>
                     </div>

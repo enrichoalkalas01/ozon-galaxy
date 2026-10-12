@@ -1,374 +1,289 @@
 "use client";
-import React, { useState, useEffect } from "react";
+
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import {
-    PlusCircle,
-    MinusCircle,
-    AlertCircle,
-    Factory,
-    Car,
-    Plane,
-    TreePine,
-    Leaf,
-    Sun,
-    Snowflake,
-    Flower,
-    Leaf as AutumnLeaf,
-    Beaker,
     ArrowRight,
+    Beaker,
+    Car,
+    Factory,
+    Flower2,
+    Leaf,
+    Plane,
+    RotateCcw,
+    Snowflake,
+    Sun,
+    TreePine,
+    type LucideIcon,
 } from "lucide-react";
-import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import {
+    ACTIONS,
+    OZONE_MAX,
+    OZONE_MIN,
+    SEASONS,
+    SEASON_TEMPERATURES,
+    type ActionId,
+    type Season,
+} from "./simulation-model";
 
 interface SimulationControlsProps {
+    ozoneLevel: number;
+    season: Season;
+    lastAction: ActionId | null;
+    isPristine: boolean;
     onOzoneChange: (value: number) => void;
-    onTemperatureChange: (value: number) => void;
-    onSeasonChange?: (season: string) => void;
+    onSeasonChange: (season: Season) => void;
+    onAction: (action: ActionId) => void;
+    onReset: () => void;
 }
 
-type Season = "spring" | "summer" | "autumn" | "winter";
+const SEASON_META: Record<
+    Season,
+    { label: string; icon: LucideIcon; active: string }
+> = {
+    spring: {
+        label: "Spring",
+        icon: Flower2,
+        active: "border-safe-400/60 bg-safe-500/15 text-safe-300",
+    },
+    summer: {
+        label: "Summer",
+        icon: Sun,
+        active: "border-warn-400/60 bg-warn-500/15 text-warn-300",
+    },
+    autumn: {
+        label: "Autumn",
+        icon: Leaf,
+        active: "border-orange-400/60 bg-orange-500/15 text-orange-300",
+    },
+    winter: {
+        label: "Winter",
+        icon: Snowflake,
+        active: "border-ozone-400/60 bg-ozone-500/15 text-ozone-300",
+    },
+};
 
-const seasonTemperatures = {
-    spring: 16,
-    summer: 25,
-    autumn: 18,
-    winter: 9,
+const ACTION_META: Record<ActionId, { icon: LucideIcon; accent: string }> = {
+    factories: {
+        icon: Factory,
+        accent: "hover:border-danger-400/50 hover:bg-danger-500/10 hover:text-danger-300",
+    },
+    cars: {
+        icon: Car,
+        accent: "hover:border-orange-400/50 hover:bg-orange-500/10 hover:text-orange-300",
+    },
+    planes: {
+        icon: Plane,
+        accent: "hover:border-danger-400/50 hover:bg-danger-500/10 hover:text-danger-300",
+    },
+    trees: {
+        icon: TreePine,
+        accent: "hover:border-safe-400/50 hover:bg-safe-500/10 hover:text-safe-300",
+    },
+    reduce: {
+        icon: Leaf,
+        accent: "hover:border-aurora-400/50 hover:bg-aurora-500/10 hover:text-aurora-300",
+    },
+};
+
+const formatDelta = (value: number, unit = "") =>
+    `${value > 0 ? "+" : ""}${value}${unit}`;
+
+const ActionButton: React.FC<{
+    id: ActionId;
+    onAction: (action: ActionId) => void;
+}> = ({ id, onAction }) => {
+    const action = ACTIONS[id];
+    const { icon: Icon, accent } = ACTION_META[id];
+
+    return (
+        <Button
+            variant="outline"
+            onClick={() => onAction(id)}
+            className={cn(
+                "h-auto w-full justify-start gap-3 border-white/10 bg-white/[0.03] px-3 py-2.5 text-left text-white/85 transition-colors",
+                accent
+            )}
+        >
+            <Icon className="size-4 shrink-0" aria-hidden="true" />
+            <span className="flex-1 text-sm font-medium">{action.label}</span>
+            <span className="shrink-0 font-mono text-[0.7rem] text-white/45">
+                O₃ {formatDelta(action.ozoneDelta)} · {formatDelta(action.tempDelta, "°")}
+            </span>
+        </Button>
+    );
 };
 
 const SimulationControls: React.FC<SimulationControlsProps> = ({
+    ozoneLevel,
+    season,
+    lastAction,
+    isPristine,
     onOzoneChange,
-    onTemperatureChange,
     onSeasonChange,
+    onAction,
+    onReset,
 }) => {
-    const [ozone, setOzone] = useState<number>(10);
-    const [temperature, setTemperature] = useState<number>(20);
-    const [currentSeason, setCurrentSeason] = useState<Season>("spring");
-    const [showReaction, setShowReaction] = useState<string | null>(null);
-
-    useEffect(() => {
-        setTemperature(seasonTemperatures.spring);
-        onTemperatureChange(seasonTemperatures.spring);
-    }, []);
-
-    const handleSeasonChange = (season: Season) => {
-        setCurrentSeason(season);
-
-        setTemperature(seasonTemperatures[season]);
-        onTemperatureChange(seasonTemperatures[season]);
-
-        if (onSeasonChange) {
-            onSeasonChange(season);
-        }
-
-        toast(`Changed to ${season} season`, {
-            description: `Base temperature: ${seasonTemperatures[season]}°C`,
-        });
-    };
-
-    const reactionInfo = {
-        factories: {
-            reaction: "CFCs + UV Light → Cl + CFCs fragments",
-            effect: "Cl + O₃ → ClO + O₂",
-            description:
-                "Factories release CFCs which break down in the atmosphere, releasing chlorine radicals that destroy ozone.",
-        },
-        cars: {
-            reaction: "Fossil Fuels + O₂ → CO₂ + NO₂ + Heat",
-            effect: "NO₂ + O → NO + O₂",
-            description:
-                "Cars produce nitrogen oxides that catalytically destroy ozone and release carbon dioxide that traps heat.",
-        },
-        planes: {
-            reaction: "Jet Fuel + High Altitude O₂ → NO₂ + CO₂ + H₂O",
-            effect: "NO + O₃ → NO₂ + O₂",
-            description:
-                "High-altitude emissions directly impact the stratosphere, where nitrogen oxides rapidly deplete ozone.",
-        },
-        trees: {
-            reaction: "CO₂ + H₂O + Sunlight → O₂ + Glucose",
-            effect: "CO₂ absorption reduces greenhouse effect",
-            description:
-                "Trees absorb carbon dioxide, reducing the greenhouse effect and cooling the atmosphere.",
-        },
-        reduce: {
-            reaction: "Reduced CFCs → Less Cl in stratosphere",
-            effect: "Natural O₃ formation outpaces destruction",
-            description:
-                "Reducing emissions allows the natural ozone formation process to overcome depletion.",
-        },
-    };
-
-    const handleAction = (action: string) => {
-        let newOzone = ozone;
-        let newTemp = temperature;
-
-        setShowReaction(action);
-
-        switch (action) {
-            case "factories":
-                newOzone = Math.max(0, ozone - 2);
-                newTemp = Math.min(50, temperature + 3);
-                toast("Added factories", {
-                    description: "Ozone -2, Temperature +3°C",
-                    icon: <Factory className="h-5 w-5 text-red-500" />,
-                });
-                break;
-            case "cars":
-                newOzone = Math.max(0, ozone - 1);
-                newTemp = Math.min(50, temperature + 1);
-                toast("Added cars", {
-                    description: "Ozone -1, Temperature +1°C",
-                    icon: <Car className="h-5 w-5 text-orange-500" />,
-                });
-                break;
-            case "planes":
-                newOzone = Math.max(0, ozone - 3);
-                newTemp = Math.min(50, temperature + 4);
-                toast("Added planes", {
-                    description: "Ozone -3, Temperature +4°C",
-                    icon: <Plane className="h-5 w-5 text-red-600" />,
-                });
-                break;
-            case "trees":
-                newOzone = Math.min(10, ozone + 2);
-
-                if (temperature > seasonTemperatures[currentSeason]) {
-                    newTemp = Math.max(
-                        seasonTemperatures[currentSeason],
-                        temperature - 2
-                    );
-                } else {
-                    newTemp = temperature;
-                }
-
-                toast("Planted trees", {
-                    description:
-                        newTemp < temperature
-                            ? `Ozone +2, Temperature -2°C`
-                            : `Ozone +2, Temperature unchanged`,
-                    icon: <TreePine className="h-5 w-5 text-green-500" />,
-                });
-                break;
-            case "reduce":
-                newOzone = Math.min(10, ozone + 1);
-
-                if (temperature > seasonTemperatures[currentSeason]) {
-                    newTemp = Math.max(
-                        seasonTemperatures[currentSeason],
-                        temperature - 1
-                    );
-                } else {
-                    newTemp = temperature;
-                }
-
-                toast("Reduced emissions", {
-                    description:
-                        newTemp < temperature
-                            ? `Ozone +1, Temperature -1°C`
-                            : `Ozone +1, Temperature unchanged`,
-                    icon: <Leaf className="h-5 w-5 text-green-400" />,
-                });
-                break;
-        }
-
-        setOzone(newOzone);
-        setTemperature(newTemp);
-        onOzoneChange(newOzone);
-        onTemperatureChange(newTemp);
-
-        if (newOzone <= 0) {
-            toast("Critical Warning", {
-                description:
-                    "The ozone layer has been completely destroyed! Extreme UV radiation is hitting Earth!",
-                icon: <AlertCircle className="h-5 w-5 text-red-500" />,
-                duration: 5000,
-            });
-        }
-
-        if (newTemp >= 50) {
-            toast("Critical Warning", {
-                description:
-                    "The Earth's temperature is too high! Climate disaster is happening!",
-                icon: <AlertCircle className="h-5 w-5 text-red-500" />,
-                duration: 5000,
-            });
-        }
-    };
-
-    const getSeasonButtonClass = (season: Season) => {
-        const baseClass =
-            "flex-1 py-2 rounded-md flex flex-col items-center justify-center gap-1 border transition-all";
-
-        if (season === currentSeason) {
-            switch (season) {
-                case "spring":
-                    return `${baseClass} bg-green-500/20 border-green-500 text-green-500`;
-                case "summer":
-                    return `${baseClass} bg-yellow-500/20 border-yellow-500 text-yellow-500`;
-                case "autumn":
-                    return `${baseClass} bg-orange-500/20 border-orange-500 text-orange-500`;
-                case "winter":
-                    return `${baseClass} bg-blue-400/20 border-blue-400 text-blue-400`;
-            }
-        }
-
-        return `${baseClass} border-white/10 bg-white/5 text-white/70 hover:bg-white/10`;
-    };
+    const reaction = lastAction ? ACTIONS[lastAction] : null;
 
     return (
-        <div className="space-y-8 w-full max-w-lg mx-auto bg-white/5 backdrop-blur-md rounded-xl p-6 border border-white/10 shadow-lg">
-            <div className="space-y-2">
-                <h3 className="text-lg font-medium mb-3">Season</h3>
-                <div className="flex gap-2">
-                    <button
-                        className={getSeasonButtonClass("spring")}
-                        onClick={() => handleSeasonChange("spring")}
-                    >
-                        <Flower className="h-5 w-5" />
-                        <span className="text-xs">Spring</span>
-                    </button>
-                    <button
-                        className={getSeasonButtonClass("summer")}
-                        onClick={() => handleSeasonChange("summer")}
-                    >
-                        <Sun className="h-5 w-5" />
-                        <span className="text-xs">Summer</span>
-                    </button>
-                    <button
-                        className={getSeasonButtonClass("autumn")}
-                        onClick={() => handleSeasonChange("autumn")}
-                    >
-                        <AutumnLeaf className="h-5 w-5" />
-                        <span className="text-xs">Autumn</span>
-                    </button>
-                    <button
-                        className={getSeasonButtonClass("winter")}
-                        onClick={() => handleSeasonChange("winter")}
-                    >
-                        <Snowflake className="h-5 w-5" />
-                        <span className="text-xs">Winter</span>
-                    </button>
-                </div>
-            </div>
+        <div className="glass-card flex flex-col gap-7 p-5 sm:p-6">
+            {/* Season ------------------------------------------------------ */}
+            <fieldset className="space-y-3">
+                <legend className="text-sm font-semibold uppercase tracking-[0.12em] text-white/50">
+                    Season
+                </legend>
+                <div className="grid grid-cols-4 gap-2">
+                    {SEASONS.map((item) => {
+                        const { label, icon: Icon, active } = SEASON_META[item];
+                        const isActive = item === season;
 
-            <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-medium">Ozone Level</h3>
-                    <span className="text-sm font-medium bg-blue-500/10 text-blue-500 py-1 px-3 rounded-full">
-                        {ozone}/10
+                        return (
+                            <button
+                                key={item}
+                                type="button"
+                                onClick={() => onSeasonChange(item)}
+                                aria-pressed={isActive}
+                                className={cn(
+                                    "flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 transition-all",
+                                    isActive
+                                        ? active
+                                        : "border-white/10 bg-white/[0.03] text-white/55 hover:bg-white/[0.07] hover:text-white/80"
+                                )}
+                            >
+                                <Icon className="size-5" aria-hidden="true" />
+                                <span className="text-xs font-medium">
+                                    {label}
+                                </span>
+                                <span className="font-mono text-[0.65rem] opacity-70">
+                                    {SEASON_TEMPERATURES[item]}°
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </fieldset>
+
+            {/* Ozone level ------------------------------------------------- */}
+            <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                    <label
+                        htmlFor="ozone-level"
+                        className="text-sm font-semibold uppercase tracking-[0.12em] text-white/50"
+                    >
+                        Ozone level
+                    </label>
+                    <span className="rounded-full border border-ozone-400/30 bg-ozone-500/10 px-2.5 py-0.5 font-mono text-xs font-semibold text-ozone-200">
+                        {ozoneLevel} / {OZONE_MAX}
                     </span>
                 </div>
+
                 <Slider
-                    value={[ozone]}
-                    min={0}
-                    max={10}
+                    id="ozone-level"
+                    value={[ozoneLevel]}
+                    min={OZONE_MIN}
+                    max={OZONE_MAX}
                     step={1}
-                    className="py-4"
-                    onValueChange={(values) => {
-                        setOzone(values[0]);
-                        onOzoneChange(values[0]);
-                    }}
+                    aria-label="Ozone level"
+                    className="py-2"
+                    onValueChange={(values) => onOzoneChange(values[0])}
                 />
-                <div className="flex justify-between text-xs text-muted-foreground">
+
+                <div className="flex justify-between text-xs text-white/40">
                     <span>Depleted</span>
                     <span>Healthy</span>
                 </div>
             </div>
 
-            {showReaction && (
-                <div className="bg-black/30 rounded-lg p-4 border border-white/10 animate-fade-in">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Beaker className="h-4 w-4 text-blue-400" />
-                        <h3 className="text-sm font-medium text-blue-400">
-                            Chemical Reaction
-                        </h3>
-                    </div>
-                    <div className="space-y-2 text-xs">
-                        <div className="bg-white/5 p-2 rounded border border-white/5">
-                            {
-                                reactionInfo[
-                                    showReaction as keyof typeof reactionInfo
-                                ]?.reaction
-                            }
-                        </div>
-                        <div className="flex justify-center">
-                            <ArrowRight className="h-4 w-4 text-white/40" />
-                        </div>
-                        <div className="bg-white/5 p-2 rounded border border-white/5">
-                            {
-                                reactionInfo[
-                                    showReaction as keyof typeof reactionInfo
-                                ]?.effect
-                            }
-                        </div>
-                        <p className="mt-2 text-white/60 text-xs italic">
-                            {
-                                reactionInfo[
-                                    showReaction as keyof typeof reactionInfo
-                                ]?.description
-                            }
-                        </p>
-                    </div>
-                </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                <div className="space-y-3">
-                    <h3 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-                        Harmful Actions
+            {/* Actions ----------------------------------------------------- */}
+            <div className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-2.5">
+                    <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-danger-300/80">
+                        Harmful
                     </h3>
                     <div className="space-y-2">
-                        <Button
-                            variant="outline"
-                            className="w-full justify-start border-red-500/20 hover:bg-red-500/10 hover:text-red-500 transition-all"
-                            onClick={() => handleAction("factories")}
-                        >
-                            <Factory className="mr-2 h-4 w-4" />
-                            Add Factories
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="w-full justify-start border-orange-500/20 hover:bg-orange-500/10 hover:text-orange-500 transition-all"
-                            onClick={() => handleAction("cars")}
-                        >
-                            <Car className="mr-2 h-4 w-4" />
-                            Add Cars
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="w-full justify-start border-red-600/20 hover:bg-red-600/10 hover:text-red-600 transition-all"
-                            onClick={() => handleAction("planes")}
-                        >
-                            <Plane className="mr-2 h-4 w-4" />
-                            Add Planes
-                        </Button>
+                        {(["factories", "cars", "planes"] as ActionId[]).map(
+                            (id) => (
+                                <ActionButton
+                                    key={id}
+                                    id={id}
+                                    onAction={onAction}
+                                />
+                            )
+                        )}
                     </div>
                 </div>
 
-                <div className="space-y-3">
-                    <h3 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-                        Beneficial Actions
+                <div className="space-y-2.5">
+                    <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-safe-300/80">
+                        Beneficial
                     </h3>
                     <div className="space-y-2">
-                        <Button
-                            variant="outline"
-                            className="w-full justify-start border-green-500/20 hover:bg-green-500/10 hover:text-green-500 transition-all"
-                            onClick={() => handleAction("trees")}
-                        >
-                            <TreePine className="mr-2 h-4 w-4" />
-                            Plant Trees
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="w-full justify-start border-green-400/20 hover:bg-green-400/10 hover:text-green-400 transition-all"
-                            onClick={() => handleAction("reduce")}
-                        >
-                            <Leaf className="mr-2 h-4 w-4" />
-                            Reduce Emissions
-                        </Button>
+                        {(["trees", "reduce"] as ActionId[]).map((id) => (
+                            <ActionButton key={id} id={id} onAction={onAction} />
+                        ))}
                     </div>
                 </div>
             </div>
+
+            {/* Reaction read-out ------------------------------------------- */}
+            <div className="min-h-[7.5rem]">
+                {reaction ? (
+                    <div
+                        key={reaction.id}
+                        className="animate-scale-in rounded-xl border border-white/10 bg-space-800/60 p-4"
+                    >
+                        <div className="mb-3 flex items-center gap-2">
+                            <Beaker
+                                className="size-4 text-ozone-300"
+                                aria-hidden="true"
+                            />
+                            <h3 className="text-sm font-semibold text-ozone-200">
+                                Chemical reaction
+                            </h3>
+                        </div>
+
+                        <div className="flex flex-col items-stretch gap-1.5 sm:flex-row sm:items-center">
+                            <code className="flex-1 rounded-lg border border-white/5 bg-white/[0.04] px-2.5 py-2 text-center text-xs text-white/85">
+                                {reaction.reaction}
+                            </code>
+                            <ArrowRight
+                                className="mx-auto size-4 shrink-0 rotate-90 text-white/30 sm:rotate-0"
+                                aria-hidden="true"
+                            />
+                            <code className="flex-1 rounded-lg border border-white/5 bg-white/[0.04] px-2.5 py-2 text-center text-xs text-white/85">
+                                {reaction.effect}
+                            </code>
+                        </div>
+
+                        <p className="mt-3 text-xs leading-relaxed text-white/55">
+                            {reaction.description}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="flex h-full min-h-[7.5rem] items-center justify-center gap-2.5 rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-4 text-center">
+                        <Beaker
+                            className="size-4 shrink-0 text-white/25"
+                            aria-hidden="true"
+                        />
+                        <p className="text-xs leading-relaxed text-white/40">
+                            Pick an action to see the chemistry behind it.
+                        </p>
+                    </div>
+                )}
+            </div>
+
+            <Button
+                variant="ghost"
+                onClick={onReset}
+                disabled={isPristine}
+                className="justify-center gap-2 text-white/60 hover:bg-white/5 hover:text-white disabled:opacity-35"
+            >
+                <RotateCcw className="size-4" aria-hidden="true" />
+                Reset simulation
+            </Button>
         </div>
     );
 };

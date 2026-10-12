@@ -1,249 +1,305 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import EarthModel from "./EarthModel";
 import SimulationControls from "./SimulationControls";
 import MoleculeAnimation from "./MoleculeAnimation";
 import TemperatureDisplay from "./TemperatureDisplay";
-import { Info } from "lucide-react";
+import SectionHeading from "./SectionHeading";
+import { Info, ShieldAlert, Sun, Waves } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+    ACTIONS,
+    clamp,
+    describeState,
+    getOzoneStatus,
+    OZONE_MAX,
+    OZONE_MIN,
+    SEASON_TEMPERATURES,
+    STATUS_COPY,
+    TEMP_MAX,
+    TEMP_MIN,
+    type ActionId,
+    type Season,
+} from "./simulation-model";
 
-type Season = "spring" | "summer" | "autumn" | "winter";
+const INITIAL_SEASON: Season = "spring";
+
+const LEGEND = [
+    {
+        icon: Waves,
+        tone: "text-ozone-300",
+        term: "Ozone shell",
+        copy: "The dashed ring around Earth. Its opacity and colour track the ozone level from 0 to 10.",
+    },
+    {
+        icon: Sun,
+        tone: "text-warn-300",
+        term: "UV radiation",
+        copy: "Below a level of 5, amber rays break through — the UV-B that reaches the surface.",
+    },
+    {
+        icon: ShieldAlert,
+        tone: "text-danger-300",
+        term: "Surface stress",
+        copy: "Above 30 °C or at a critical ozone level, the land browns and the polar caps retreat.",
+    },
+] as const;
 
 const OzoneSimulation: React.FC = () => {
-    const [ozoneLevel, setOzoneLevel] = useState<number>(10);
-    const [temperature, setTemperature] = useState<number>(16); // Default to spring
-    const [currentSeason, setCurrentSeason] = useState<Season>("spring");
-    const [simulationInfo, setSimulationInfo] = useState<string>(
-        "Healthy ozone layer protects Earth from harmful UV radiation"
+    const [ozoneLevel, setOzoneLevel] = useState(OZONE_MAX);
+    const [temperature, setTemperature] = useState(
+        SEASON_TEMPERATURES[INITIAL_SEASON]
     );
-    const sectionRef = useRef<HTMLElement>(null);
+    const [season, setSeason] = useState<Season>(INITIAL_SEASON);
+    const [lastAction, setLastAction] = useState<ActionId | null>(null);
 
-    const getOzoneStatus = () => {
-        if (ozoneLevel > 7) return "healthy";
-        if (ozoneLevel > 3) return "damaged";
-        return "critical";
-    };
+    // Guards so the critical alerts fire on the transition, not every render.
+    const warnedOzone = useRef(false);
+    const warnedHeat = useRef(false);
 
-    const handleSeasonChange = (season: string) => {
-        setCurrentSeason(season as Season);
-    };
+    const status = getOzoneStatus(ozoneLevel);
+    const statusCopy = STATUS_COPY[status];
+    const readout = useMemo(
+        () => describeState(ozoneLevel, temperature),
+        [ozoneLevel, temperature]
+    );
 
-    useEffect(() => {
-        if (ozoneLevel <= 3) {
-            setSimulationInfo(
-                "CRITICAL: Ozone layer severely depleted, dangerous UV radiation reaching Earth's surface"
-            );
-        } else if (ozoneLevel <= 7) {
-            setSimulationInfo(
-                "WARNING: Ozone layer damaged, increased UV radiation reaching Earth"
-            );
-        } else {
-            setSimulationInfo(
-                "Healthy ozone layer protects Earth from harmful UV radiation"
-            );
-        }
+    const isPristine =
+        ozoneLevel === OZONE_MAX &&
+        season === INITIAL_SEASON &&
+        temperature === SEASON_TEMPERATURES[INITIAL_SEASON] &&
+        lastAction === null;
 
-        if (temperature >= 30) {
-            setSimulationInfo(
-                (prev) =>
-                    `${prev}. High temperatures accelerating ozone depletion`
-            );
-        } else if (temperature <= 10) {
-            setSimulationInfo(
-                (prev) =>
-                    `${prev}. Cold temperatures slow ozone recovery process`
-            );
-        }
-    }, [ozoneLevel, temperature]);
-
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add("section-visible");
-                    }
+    const announceThresholds = useCallback(
+        (nextOzone: number, nextTemp: number) => {
+            if (nextOzone <= OZONE_MIN && !warnedOzone.current) {
+                warnedOzone.current = true;
+                toast.error("Ozone layer destroyed", {
+                    description:
+                        "Nothing is absorbing UV-B any more. Surface life would not survive this.",
+                    duration: 6000,
                 });
-            },
-            { threshold: 0.1 }
-        );
-
-        if (sectionRef.current) {
-            observer.observe(sectionRef.current);
-        }
-
-        return () => {
-            if (sectionRef.current) {
-                observer.unobserve(sectionRef.current);
+            } else if (nextOzone > OZONE_MIN) {
+                warnedOzone.current = false;
             }
-        };
+
+            if (nextTemp >= TEMP_MAX && !warnedHeat.current) {
+                warnedHeat.current = true;
+                toast.error("Runaway heating", {
+                    description: `Surface temperature has hit the ${TEMP_MAX} °C ceiling of this model.`,
+                    duration: 6000,
+                });
+            } else if (nextTemp < TEMP_MAX) {
+                warnedHeat.current = false;
+            }
+        },
+        []
+    );
+
+    const handleOzoneChange = useCallback(
+        (value: number) => {
+            const next = clamp(value, OZONE_MIN, OZONE_MAX);
+            setOzoneLevel(next);
+            announceThresholds(next, temperature);
+        },
+        [announceThresholds, temperature]
+    );
+
+    const handleSeasonChange = useCallback(
+        (next: Season) => {
+            setSeason(next);
+            setTemperature(SEASON_TEMPERATURES[next]);
+            toast(`Season set to ${next}`, {
+                description: `Baseline temperature is now ${SEASON_TEMPERATURES[next]} °C.`,
+            });
+        },
+        []
+    );
+
+    const handleAction = useCallback(
+        (id: ActionId) => {
+            const action = ACTIONS[id];
+            setLastAction(id);
+
+            const nextOzone = clamp(
+                ozoneLevel + action.ozoneDelta,
+                OZONE_MIN,
+                OZONE_MAX
+            );
+
+            // Cooling can only bring the temperature back to the seasonal
+            // baseline — planting trees cannot freeze the planet.
+            const baseline = SEASON_TEMPERATURES[season];
+            const nextTemp =
+                action.tempDelta < 0
+                    ? Math.max(baseline, temperature + action.tempDelta)
+                    : clamp(temperature + action.tempDelta, TEMP_MIN, TEMP_MAX);
+
+            setOzoneLevel(nextOzone);
+            setTemperature(nextTemp);
+
+            const ozoneShift = nextOzone - ozoneLevel;
+            const tempShift = nextTemp - temperature;
+            const parts = [
+                ozoneShift === 0
+                    ? "ozone unchanged"
+                    : `ozone ${ozoneShift > 0 ? "+" : ""}${ozoneShift}`,
+                tempShift === 0
+                    ? "temperature unchanged"
+                    : `temperature ${tempShift > 0 ? "+" : ""}${tempShift} °C`,
+            ];
+
+            const notify = action.kind === "harmful" ? toast.warning : toast.success;
+            notify(action.label, { description: parts.join(", ") + "." });
+
+            announceThresholds(nextOzone, nextTemp);
+        },
+        [announceThresholds, ozoneLevel, season, temperature]
+    );
+
+    const handleReset = useCallback(() => {
+        setOzoneLevel(OZONE_MAX);
+        setSeason(INITIAL_SEASON);
+        setTemperature(SEASON_TEMPERATURES[INITIAL_SEASON]);
+        setLastAction(null);
+        warnedOzone.current = false;
+        warnedHeat.current = false;
+        toast("Simulation reset", {
+            description: "Back to a healthy layer in spring conditions.",
+        });
     }, []);
 
     return (
         <section
             id="simulation"
-            ref={sectionRef}
-            className="py-20 md:py-32 bg-gradient-to-b from-slate-950 to-space-dark section-fade-in"
+            className="section-veil-cool scroll-mt-24 py-16 md:py-24"
         >
-            <div className="container mx-auto px-4">
-                <div className="text-center mb-16">
-                    <span className="inline-block text-sm font-semibold text-blue-400 uppercase tracking-wider mb-2">
-                        Interactive Experience
-                    </span>
-                    <h2 className="text-3xl md:text-4xl font-bold text-white">
-                        Ozone Layer Simulation
-                    </h2>
-                    <p className="mt-4 text-lg text-white/70 max-w-2xl mx-auto">
-                        Explore how different factors affect Earth's protective
-                        ozone shield.
-                    </p>
-                </div>
+            <div className="container-page">
+                <SectionHeading
+                    className="reveal mb-10 md:mb-12"
+                    eyebrow="Interactive experience"
+                    title="Ozone Layer Simulation"
+                    description="Change the season, drag the ozone level, or add emissions — the globe, the thermometer and the chemistry all respond."
+                />
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
-                    <div className="flex flex-col items-center justify-center">
-                        <div className="bg-black/30 backdrop-blur-md rounded-xl p-8 w-full border border-white/10 shadow-lg">
-                            <div className="flex justify-center">
-                                <EarthModel
-                                    ozoneLevel={ozoneLevel}
-                                    rotating={true}
-                                    temperature={temperature}
-                                />
+                <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:gap-8">
+                    {/* Visualisation ---------------------------------------- */}
+                    <div className="reveal glass-card flex flex-col gap-5 p-5 sm:p-6">
+                        <div className="flex justify-center py-2">
+                            <EarthModel
+                                ozoneLevel={ozoneLevel}
+                                temperature={temperature}
+                                rotating
+                            />
+                        </div>
+
+                        {/* Live read-out */}
+                        <div
+                            className="flex items-start gap-3 rounded-xl border border-white/10 bg-space-800/60 p-4"
+                            role="status"
+                            aria-live="polite"
+                        >
+                            <Info
+                                className="mt-0.5 size-4 shrink-0 text-ozone-300"
+                                aria-hidden="true"
+                            />
+                            <p className="text-sm leading-relaxed text-white/80">
+                                <span className="font-semibold text-ozone-200">
+                                    Status:
+                                </span>{" "}
+                                {readout}
+                            </p>
+                        </div>
+
+                        {/* Gauges */}
+                        <div className="grid gap-4 rounded-xl border border-white/10 bg-white/[0.03] p-4 sm:grid-cols-2">
+                            <div className="flex flex-col justify-center gap-2">
+                                <p className="text-xs uppercase tracking-[0.12em] text-white/45">
+                                    Layer condition
+                                </p>
+                                <p
+                                    className={cn(
+                                        "inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold",
+                                        statusCopy.ring,
+                                        statusCopy.text
+                                    )}
+                                >
+                                    <span
+                                        className={cn(
+                                            "size-2 rounded-full",
+                                            statusCopy.dot
+                                        )}
+                                        aria-hidden="true"
+                                    />
+                                    {statusCopy.label}
+                                </p>
+                                <p className="font-mono text-xs text-white/45">
+                                    O₃ index {ozoneLevel}/{OZONE_MAX}
+                                </p>
                             </div>
 
-                            <div className="mt-4 bg-black/60 rounded-lg p-4 border border-white/10 animate-pulse-slow">
-                                <div className="flex items-start gap-3">
-                                    <Info className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                                    <p className="text-sm text-white/90">
-                                        <span className="font-medium text-blue-400">
-                                            Simulation Status:
-                                        </span>{" "}
-                                        {simulationInfo}
-                                    </p>
-                                </div>
-                            </div>
+                            <TemperatureDisplay
+                                temperature={temperature}
+                                className="sm:justify-self-end"
+                            />
+                        </div>
 
-                            <div className="mt-4 bg-black/40 rounded-lg p-4 border border-white/5">
-                                <div className="flex flex-wrap justify-between items-start gap-4">
-                                    <div className="space-y-1">
-                                        <p className="text-xs text-white/50 uppercase tracking-wider">
-                                            Ozone Layer Status
-                                        </p>
-                                        <p className="text-lg font-medium text-white flex items-center">
-                                            <span
-                                                className={`inline-block w-2 h-2 rounded-full mr-2 ${
-                                                    ozoneLevel > 7
-                                                        ? "bg-green-500"
-                                                        : ozoneLevel > 3
-                                                        ? "bg-yellow-500"
-                                                        : "bg-red-500"
-                                                }`}
-                                            ></span>
-                                            {ozoneLevel > 7
-                                                ? "Healthy"
-                                                : ozoneLevel > 3
-                                                ? "Damaged"
-                                                : "Critical"}
-                                        </p>
-                                    </div>
-
-                                    <div className="flex-shrink-0">
-                                        <TemperatureDisplay
-                                            temperature={temperature}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="mt-4 pt-4 border-t border-white/10">
-                                    <div className="text-xs text-white/50 uppercase tracking-wider mb-3 text-center">
-                                        Molecular Structure
-                                    </div>
-                                    <div className="flex items-center justify-center space-x-2">
-                                        <div className="flex flex-col items-center">
-                                            <p className="text-xs text-blue-400 mb-1">
-                                                Ozone (O₃)
-                                            </p>
-                                            <MoleculeAnimation
-                                                type="ozone"
-                                                status={getOzoneStatus()}
-                                                showLabels={false}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
+                        {/* Molecule state */}
+                        <div className="flex items-center gap-4 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                            <MoleculeAnimation
+                                type="ozone"
+                                status={status}
+                                showLabels={false}
+                                className="max-w-[5.5rem] shrink-0"
+                            />
+                            <div className="space-y-1">
+                                <p className="text-xs uppercase tracking-[0.12em] text-white/45">
+                                    Ozone molecule
+                                </p>
+                                <p className="text-sm text-white/75">
+                                    Three oxygen atoms in a bent chain. The
+                                    colour follows the health of the layer.
+                                </p>
                             </div>
                         </div>
                     </div>
 
-                    <div>
+                    {/* Controls --------------------------------------------- */}
+                    <div className="reveal" style={{ "--reveal-delay": "120ms" } as React.CSSProperties}>
                         <SimulationControls
-                            onOzoneChange={setOzoneLevel}
-                            onTemperatureChange={setTemperature}
+                            ozoneLevel={ozoneLevel}
+                            season={season}
+                            lastAction={lastAction}
+                            isPristine={isPristine}
+                            onOzoneChange={handleOzoneChange}
                             onSeasonChange={handleSeasonChange}
+                            onAction={handleAction}
+                            onReset={handleReset}
                         />
                     </div>
                 </div>
 
-                <div className="mt-16 max-w-4xl mx-auto">
-                    <div className="bg-white/5 backdrop-blur-md rounded-xl p-6 border border-white/10 shadow-lg">
-                        <h3 className="text-xl font-semibold text-white mb-4">
-                            What's Happening in the Simulation?
-                        </h3>
-                        <div className="space-y-4 text-white/80">
-                            <p>
-                                This interactive simulation demonstrates how
-                                various factors affect the Earth's ozone layer
-                                and climate:
-                            </p>
-                            <ul className="list-disc pl-5 space-y-2">
-                                <li>
-                                    <span className="text-blue-400 font-medium">
-                                        Ozone Layer:
-                                    </span>{" "}
-                                    The blue shield surrounding Earth represents
-                                    the ozone layer. Its opacity changes based
-                                    on the ozone level value (0-10).
-                                </li>
-                                <li>
-                                    <span className="text-yellow-400 font-medium">
-                                        UV Radiation:
-                                    </span>{" "}
-                                    When the ozone layer becomes depleted (less
-                                    than 5), yellow rays appear, representing
-                                    harmful UV radiation reaching Earth.
-                                </li>
-                                <li>
-                                    <span className="text-green-400 font-medium">
-                                        Earth Condition:
-                                    </span>{" "}
-                                    The colors and appearance of Earth change
-                                    based on temperature and ozone levels.
-                                    Drought conditions appear during high
-                                    temperatures or critical ozone levels.
-                                </li>
-                                <li>
-                                    <span className="text-purple-400 font-medium">
-                                        Chemical Reactions:
-                                    </span>{" "}
-                                    Each action you take (adding factories,
-                                    cars, etc.) triggers specific chemical
-                                    reactions that affect the ozone layer and
-                                    temperature.
-                                </li>
-                                <li>
-                                    <span className="text-orange-400 font-medium">
-                                        Seasons:
-                                    </span>{" "}
-                                    Changing seasons affects the baseline
-                                    temperature, which influences how quickly
-                                    the ozone layer can recover or degrade.
-                                </li>
-                            </ul>
-                            <p>
-                                Try different combinations of actions to see how
-                                they impact the Earth and its protective ozone
-                                shield!
+                {/* Legend ------------------------------------------------- */}
+                <div className="reveal mt-12 grid gap-4 md:grid-cols-3">
+                    {LEGEND.map(({ icon: Icon, tone, term, copy }) => (
+                        <div
+                            key={term}
+                            className="glass-panel flex flex-col gap-2 p-5"
+                        >
+                            <Icon
+                                className={cn("size-5", tone)}
+                                aria-hidden="true"
+                            />
+                            <h3 className="text-base font-semibold text-white">
+                                {term}
+                            </h3>
+                            <p className="text-sm leading-relaxed text-white/60">
+                                {copy}
                             </p>
                         </div>
-                    </div>
+                    ))}
                 </div>
             </div>
         </section>

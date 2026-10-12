@@ -1,71 +1,83 @@
 "use client";
+
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Thermometer } from "lucide-react";
+import { TEMP_MAX, TEMP_MIN } from "./simulation-model";
 
 interface TemperatureDisplayProps {
     temperature: number;
     className?: string;
 }
 
+const BANDS = [
+    { max: 15, label: "Cold", text: "text-ozone-300", fill: "bg-ozone-500" },
+    { max: 20, label: "Mild", text: "text-safe-300", fill: "bg-safe-500" },
+    { max: 30, label: "Warm", text: "text-warn-300", fill: "bg-warn-500" },
+    { max: Infinity, label: "Hot", text: "text-danger-300", fill: "bg-danger-500" },
+] as const;
+
 const TemperatureDisplay: React.FC<TemperatureDisplayProps> = ({
     temperature,
     className,
 }) => {
-    // Determine temperature color based on value
-    const getTemperatureColor = () => {
-        if (temperature < 15) return "text-blue-400";
-        if (temperature < 20) return "text-green-400";
-        if (temperature < 30) return "text-yellow-400";
-        return "text-red-400";
-    };
+    const band = BANDS.find((entry) => temperature < entry.max) ?? BANDS[3];
 
-    // Determine fill height based on temperature (0-50°C range)
-    const fillPercentage = Math.min(100, Math.max(0, (temperature / 50) * 100));
-
-    // Determine fill color based on temperature
-    const getFillColor = () => {
-        if (temperature < 15) return "bg-blue-500";
-        if (temperature < 20) return "bg-green-500";
-        if (temperature < 30) return "bg-yellow-500";
-        return "bg-red-500";
-    };
+    const fillPercentage = Math.min(
+        100,
+        Math.max(
+            0,
+            ((temperature - TEMP_MIN) / (TEMP_MAX - TEMP_MIN)) * 100
+        )
+    );
 
     return (
-        <div className={cn("flex items-center", className)}>
-            <div className="relative h-20 w-5 bg-white/10 rounded-full overflow-hidden border border-white/20 mr-3">
+        <div className={cn("flex items-center gap-3", className)}>
+            {/* Thermometer tube */}
+            <div
+                className="relative h-20 w-4 overflow-hidden rounded-full border border-white/15 bg-white/[0.06]"
+                role="meter"
+                aria-valuenow={temperature}
+                aria-valuemin={TEMP_MIN}
+                aria-valuemax={TEMP_MAX}
+                aria-label="Surface temperature"
+            >
                 <div
-                    className={`absolute bottom-0 w-full transition-all duration-1000 ${getFillColor()}`}
+                    className={cn(
+                        "absolute bottom-0 w-full rounded-full transition-all duration-700 ease-out",
+                        band.fill
+                    )}
                     style={{ height: `${fillPercentage}%` }}
                 />
-                <div className="absolute inset-0 flex flex-col justify-between p-0.5 pointer-events-none">
-                    <span className="block w-full h-px bg-white/30"></span>
-                    <span className="block w-full h-px bg-white/30"></span>
-                    <span className="block w-full h-px bg-white/30"></span>
-                    <span className="block w-full h-px bg-white/30"></span>
+                {/* Graduations */}
+                <div
+                    className="pointer-events-none absolute inset-0 flex flex-col justify-evenly px-[3px]"
+                    aria-hidden="true"
+                >
+                    {Array.from({ length: 4 }).map((_, index) => (
+                        <span
+                            key={index}
+                            className="block h-px w-full bg-white/25"
+                        />
+                    ))}
                 </div>
-
-                {/* Thermometer bulb */}
-                <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-6 h-6 rounded-full border border-white/20 bg-gradient-to-br from-white/5 to-white/10"></div>
             </div>
 
-            <div>
-                <div className="flex items-center text-xs text-white/70">
-                    <Thermometer className="w-3 h-3 mr-1" />
-                    <span>Temperature</span>
-                </div>
-                <div className={`text-xl font-bold ${getTemperatureColor()}`}>
-                    {temperature}°C
-                </div>
-                <div className="text-xs text-white/50">
-                    {temperature < 15
-                        ? "Cold"
-                        : temperature < 20
-                        ? "Mild"
-                        : temperature < 30
-                        ? "Warm"
-                        : "Hot"}
-                </div>
+            <div className="space-y-0.5">
+                <p className="flex items-center gap-1.5 text-xs uppercase tracking-[0.12em] text-white/45">
+                    <Thermometer className="size-3.5" aria-hidden="true" />
+                    Temperature
+                </p>
+                <p
+                    className={cn(
+                        "font-display text-2xl font-semibold tabular-nums",
+                        band.text
+                    )}
+                >
+                    {temperature}
+                    <span className="text-base font-medium opacity-70">°C</span>
+                </p>
+                <p className="text-xs text-white/45">{band.label}</p>
             </div>
         </div>
     );

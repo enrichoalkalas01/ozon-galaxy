@@ -1,99 +1,116 @@
-"use client";
 import React from "react";
-import { Github, Heart, Twitter } from "lucide-react";
+import { Github, Heart, Orbit, Twitter } from "lucide-react";
+
+const RESOURCES = [
+    {
+        label: "NASA Ozone Watch",
+        href: "https://ozonewatch.gsfc.nasa.gov/",
+    },
+    {
+        label: "EPA Ozone Protection",
+        href: "https://www.epa.gov/ozone-layer-protection",
+    },
+    {
+        label: "UNEP OzonAction",
+        href: "https://www.unep.org/ozonaction/",
+    },
+    {
+        label: "WMO Ozone Assessment",
+        href: "https://csl.noaa.gov/assessments/ozone/",
+    },
+];
+
+const SOCIALS = [
+    { label: "GitHub", href: "https://github.com", icon: Github },
+    { label: "Twitter", href: "https://twitter.com", icon: Twitter },
+];
 
 const Footer: React.FC = () => {
     return (
-        <footer className="py-12 bg-black border-t border-white/10">
-            <div className="container mx-auto px-4">
-                <div className="flex flex-col md:flex-row justify-between items-center">
-                    <div className="mb-6 md:mb-0">
-                        <h3 className="text-xl font-display font-semibold tracking-tight text-white">
-                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-400">
-                                Ozone Layer Lab
+        <footer className="border-t border-white/[0.07] bg-space-900/50 py-12">
+            <div className="container-page">
+                <div className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
+                    {/* Brand */}
+                    <div className="max-w-sm space-y-3">
+                        <div className="flex items-center gap-2.5">
+                            <span className="grid size-8 place-items-center rounded-lg border border-ozone-400/30 bg-ozone-500/10">
+                                <Orbit
+                                    className="size-4 text-ozone-300"
+                                    aria-hidden="true"
+                                />
                             </span>
-                        </h3>
-                        <p className="text-sm text-white/60 mt-2">
-                            An educational project about Earth's protective
-                            shield
+                            <span className="font-display text-lg font-semibold tracking-tight text-gradient-ozone">
+                                Ozone Lab
+                            </span>
+                        </div>
+                        <p className="text-sm leading-relaxed text-white/55">
+                            An educational project about Earth&apos;s protective
+                            shield — how it works, what damaged it, and how it
+                            is recovering.
                         </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-8">
-                        <div>
-                            <h4 className="text-sm font-medium text-white mb-3">
+                    {/* Links */}
+                    <div className="flex flex-col gap-10 sm:flex-row sm:gap-16">
+                        <nav aria-labelledby="footer-resources">
+                            <h2
+                                id="footer-resources"
+                                className="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-white/45"
+                            >
                                 Resources
-                            </h4>
-                            <ul className="space-y-2">
-                                <li>
-                                    <a
-                                        href="https://www.nasa.gov/ozone"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-sm text-white/60 hover:text-white/80 transition-colors"
-                                    >
-                                        NASA Ozone Research
-                                    </a>
-                                </li>
-                                <li>
-                                    <a
-                                        href="https://www.epa.gov/ozone-layer-protection"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-sm text-white/60 hover:text-white/80 transition-colors"
-                                    >
-                                        EPA Ozone Protection
-                                    </a>
-                                </li>
-                                <li>
-                                    <a
-                                        href="https://www.unep.org/ozonaction/"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-sm text-white/60 hover:text-white/80 transition-colors"
-                                    >
-                                        UNEP OzonAction
-                                    </a>
-                                </li>
+                            </h2>
+                            <ul className="space-y-2.5">
+                                {RESOURCES.map((item) => (
+                                    <li key={item.href}>
+                                        <a
+                                            href={item.href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm text-white/65 transition-colors hover:text-ozone-200"
+                                        >
+                                            {item.label}
+                                        </a>
+                                    </li>
+                                ))}
                             </ul>
-                        </div>
+                        </nav>
 
                         <div>
-                            <h4 className="text-sm font-medium text-white mb-3">
+                            <h2 className="mb-4 text-xs font-semibold uppercase tracking-[0.14em] text-white/45">
                                 Connect
-                            </h4>
-                            <div className="flex space-x-4">
-                                <a
-                                    href="https://github.com"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-white/60 hover:text-white/90 transition-colors"
-                                    aria-label="GitHub"
-                                >
-                                    <Github className="h-5 w-5" />
-                                </a>
-                                <a
-                                    href="https://twitter.com"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-white/60 hover:text-white/90 transition-colors"
-                                    aria-label="Twitter"
-                                >
-                                    <Twitter className="h-5 w-5" />
-                                </a>
+                            </h2>
+                            <div className="flex gap-2.5">
+                                {SOCIALS.map(({ label, href, icon: Icon }) => (
+                                    <a
+                                        key={label}
+                                        href={href}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        aria-label={label}
+                                        className="grid size-9 place-items-center rounded-lg border border-white/10 bg-white/[0.03] text-white/60 transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white"
+                                    >
+                                        <Icon
+                                            className="size-4"
+                                            aria-hidden="true"
+                                        />
+                                    </a>
+                                ))}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center">
-                    <p className="text-xs text-white/50">
-                        &copy; {new Date().getFullYear()} Ozone Layer Lab. All
-                        rights reserved.
+                <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 sm:flex-row">
+                    <p className="text-xs text-white/40">
+                        &copy; {new Date().getFullYear()} Ozone Lab. Educational
+                        use — figures from NASA, NOAA and UNEP.
                     </p>
-                    <p className="text-xs text-white/50 mt-2 sm:mt-0 flex items-center">
+                    <p className="flex items-center gap-1.5 text-xs text-white/40">
                         Made with
-                        <Heart className="h-3 w-3 mx-1 text-red-500" />
+                        <Heart
+                            className="size-3 text-danger-400"
+                            aria-hidden="true"
+                        />
                         for Earth
                     </p>
                 </div>

@@ -1,231 +1,250 @@
 "use client";
-import React, { useEffect, useRef } from "react";
+
+import React from "react";
 import { Button } from "@/components/ui/button";
+import SectionHeading from "./SectionHeading";
 import {
-    CheckCircle2,
     ExternalLink,
     FileText,
     HeartHandshake,
     Recycle,
     ShieldCheck,
+    type LucideIcon,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface Solution {
+    title: string;
+    description: string;
+    icon: LucideIcon;
+    tone: string;
+    stat: string;
+    statLabel: string;
+}
+
+const SOLUTIONS: Solution[] = [
+    {
+        title: "The Montreal Protocol",
+        description:
+            "A binding treaty that phased out ozone-depleting substances on a fixed schedule, with separate timelines for developing economies and a fund to pay for the switch.",
+        icon: FileText,
+        tone: "text-ozone-300 border-ozone-400/25 bg-ozone-500/10",
+        stat: "~99%",
+        statLabel: "of controlled substances phased out since 1987",
+    },
+    {
+        title: "Alternative technologies",
+        description:
+            "Industry replaced CFCs with HCFCs, then HFCs, and is now moving to HFOs, hydrocarbons and CO₂ — each generation less damaging than the last.",
+        icon: Recycle,
+        tone: "text-safe-300 border-safe-400/25 bg-safe-500/10",
+        stat: "4",
+        statLabel: "generations of refrigerant chemistry replaced",
+    },
+    {
+        title: "Global cooperation",
+        description:
+            "The only UN treaty ever ratified by every member state. Science, industry and governments agreed on evidence first, then on a timetable.",
+        icon: HeartHandshake,
+        tone: "text-purple-300 border-purple-400/25 bg-purple-500/10",
+        stat: "198",
+        statLabel: "parties — universal ratification",
+    },
+    {
+        title: "Ongoing monitoring",
+        description:
+            "Satellites, ground stations and balloon soundings track ozone, UV and trace gases continuously — which is how illegal CFC-11 emissions were caught in 2018.",
+        icon: ShieldCheck,
+        tone: "text-warn-300 border-warn-400/25 bg-warn-500/10",
+        stat: "~2066",
+        statLabel: "projected return to 1980 Antarctic levels",
+    },
+];
+
+const TIMELINE = [
+    {
+        year: "1974",
+        event: "Molina and Rowland publish the theory that CFCs destroy stratospheric ozone.",
+    },
+    {
+        year: "1985",
+        event: "The British Antarctic Survey reports the ozone hole over Halley Bay.",
+    },
+    {
+        year: "1987",
+        event: "The Montreal Protocol is signed, setting binding phase-out schedules.",
+    },
+    {
+        year: "1990",
+        event: "London amendments tighten the targets and create the Multilateral Fund.",
+    },
+    {
+        year: "2000",
+        event: "Production of CFCs for most uses ends in industrialised countries.",
+    },
+    {
+        year: "2016",
+        event: "The first statistically significant healing of the Antarctic hole is confirmed.",
+    },
+    {
+        year: "2023",
+        event: "WMO assessment confirms recovery remains on track for the 2060s.",
+    },
+];
 
 const Recovery: React.FC = () => {
-    const sectionRef = useRef<HTMLElement>(null);
-
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add("section-visible");
-                    }
-                });
-            },
-            { threshold: 0.1 }
-        );
-
-        if (sectionRef.current) {
-            observer.observe(sectionRef.current);
-        }
-
-        return () => {
-            if (sectionRef.current) {
-                observer.unobserve(sectionRef.current);
-            }
-        };
-    }, []);
-
-    const solutions = [
-        {
-            title: "Montreal Protocol",
-            description:
-                "An international treaty designed to protect the ozone layer by phasing out the production and consumption of ozone-depleting substances.",
-            icon: <FileText className="h-12 w-12 p-2 text-blue-400" />,
-            stats: "98% reduction in ozone-depleting substances since 1987",
-        },
-        {
-            title: "Alternative Technologies",
-            description:
-                "Development and adoption of ozone-friendly alternatives to CFCs and other harmful chemicals in refrigeration, air conditioning, and aerosols.",
-            icon: <Recycle className="h-12 w-12 p-2 text-green-400" />,
-            stats: "Hundreds of new safe alternatives developed",
-        },
-        {
-            title: "Global Cooperation",
-            description:
-                "Unprecedented collaboration between nations, industries, and scientists to address a common environmental threat.",
-            icon: <HeartHandshake className="h-12 w-12 p-2 text-purple-400" />,
-            stats: "198 countries participating in protection efforts",
-        },
-        {
-            title: "Ongoing Monitoring",
-            description:
-                "Continuous scientific monitoring of ozone levels, UV radiation, and the concentration of ozone-depleting substances in the atmosphere.",
-            icon: <ShieldCheck className="h-12 w-12 p-2 text-yellow-400" />,
-            stats: "Expected full recovery by 2060-2070",
-        },
-    ];
-
-    const timeline = [
-        { year: 1974, event: "Scientists discover that CFCs destroy ozone" },
-        {
-            year: 1985,
-            event: "British Antarctic Survey discovers the ozone hole",
-        },
-        { year: 1987, event: "Montreal Protocol is signed" },
-        { year: 1990, event: "Protocol amendments strengthen restrictions" },
-        { year: 2000, event: "Global CFC production for most uses ends" },
-        {
-            year: 2016,
-            event: "First signs of Antarctic ozone healing detected",
-        },
-        { year: 2019, event: "Confirmation of ozone layer recovery progress" },
-    ];
-
     return (
         <section
             id="recovery"
-            ref={sectionRef}
-            className="py-20 md:py-32 bg-gradient-to-b from-black to-blue-950 section-fade-in"
+            className="section-veil scroll-mt-24 py-16 md:py-24"
         >
-            <div className="container mx-auto px-4">
-                <div className="text-center mb-16">
-                    <span className="inline-block text-sm font-semibold text-blue-400 uppercase tracking-wider mb-2">
-                        Hope for the Future
-                    </span>
-                    <h2 className="text-3xl md:text-4xl font-bold text-white">
-                        The Path to Recovery
-                    </h2>
-                    <p className="mt-4 text-lg text-white/70 max-w-2xl mx-auto">
-                        The ozone layer's healing is one of humanity's greatest
-                        environmental success stories.
-                    </p>
-                </div>
+            <div className="container-page">
+                <SectionHeading
+                    className="reveal mb-10 md:mb-12"
+                    eyebrow="Hope for the future"
+                    title="The Path to Recovery"
+                    description="The ozone layer is the clearest case we have of a global environmental problem being identified, legislated and measurably reversed."
+                    tone="aurora"
+                />
 
-                {/* Solutions grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-20">
-                    {solutions.map((solution, index) => (
-                        <div
-                            key={index}
-                            className="glass-card rounded-xl p-6 transition-transform duration-500 hover:translate-y-[-5px]"
-                        >
-                            <div className="mb-4 bg-white/5 rounded-full w-16 h-16 flex items-center justify-center">
-                                {solution.icon}
-                            </div>
-                            <h3 className="text-xl font-semibold text-white mb-2">
-                                {solution.title}
-                            </h3>
-                            <p className="text-white/70 mb-4">
-                                {solution.description}
-                            </p>
-                            <div className="pt-4 border-t border-white/10">
-                                <p className="text-sm font-medium text-blue-400">
-                                    {solution.stats}
-                                </p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                {/* Solutions */}
+                <div className="grid gap-6 md:grid-cols-2">
+                    {SOLUTIONS.map((solution, index) => {
+                        const Icon = solution.icon;
 
-                {/* Timeline */}
-                <div className="max-w-4xl mx-auto mb-20">
-                    <h3 className="text-2xl font-semibold text-white mb-8 text-center">
-                        Recovery Timeline
-                    </h3>
-                    <div className="relative">
-                        {/* Timeline line */}
-                        <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-gradient-to-b from-blue-600/50 via-blue-400/50 to-green-400/50"></div>
-
-                        {/* Timeline events */}
-                        {timeline.map((item, index) => (
-                            <div
-                                key={index}
-                                className={`relative mb-8 ${
-                                    index % 2 === 0 ? "md:text-right" : ""
-                                }`}
+                        return (
+                            <article
+                                key={solution.title}
+                                className="reveal glass-card flex flex-col gap-4 p-6 transition-transform duration-500 hover:-translate-y-1"
+                                style={
+                                    {
+                                        "--reveal-delay": `${index * 60}ms`,
+                                    } as React.CSSProperties
+                                }
                             >
-                                <div className="flex items-center mb-2 md:mb-0">
-                                    {/* Timeline marker */}
-                                    <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center justify-center">
-                                        <div className="h-4 w-4 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
-                                    </div>
+                                <span
+                                    className={cn(
+                                        "grid size-12 place-items-center rounded-2xl border",
+                                        solution.tone
+                                    )}
+                                >
+                                    <Icon
+                                        className="size-5"
+                                        aria-hidden="true"
+                                    />
+                                </span>
 
-                                    {/* Content for larger screens (different sides) */}
-                                    <div
-                                        className={`hidden md:block absolute top-0 w-[calc(50%-20px)] ${
-                                            index % 2 === 0
-                                                ? "left-0"
-                                                : "right-0"
-                                        }`}
-                                    >
-                                        <div
-                                            className={`${
-                                                index % 2 === 0
-                                                    ? "pr-8"
-                                                    : "pl-8"
-                                            }`}
-                                        >
-                                            <span className="text-xl font-semibold text-blue-400">
-                                                {item.year}
-                                            </span>
-                                            <p className="text-white/90 mt-1">
-                                                {item.event}
-                                            </p>
-                                        </div>
-                                    </div>
+                                <h3 className="text-xl font-semibold text-white">
+                                    {solution.title}
+                                </h3>
 
-                                    {/* Content for mobile (all on right side) */}
-                                    <div className="md:hidden ml-16">
-                                        <span className="text-xl font-semibold text-blue-400">
-                                            {item.year}
-                                        </span>
-                                        <p className="text-white/90 mt-1">
-                                            {item.event}
-                                        </p>
-                                    </div>
+                                <p className="text-sm leading-relaxed text-white/65">
+                                    {solution.description}
+                                </p>
+
+                                <div className="mt-auto flex items-baseline gap-3 border-t border-white/10 pt-4">
+                                    <span className="font-display text-2xl font-semibold text-aurora-300">
+                                        {solution.stat}
+                                    </span>
+                                    <span className="text-xs leading-snug text-white/50">
+                                        {solution.statLabel}
+                                    </span>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+                            </article>
+                        );
+                    })}
                 </div>
 
-                {/* Call to action */}
-                <div className="text-center max-w-2xl mx-auto">
-                    <h3 className="text-2xl font-semibold text-white mb-4">
-                        Be Part of the Solution
+                {/* Timeline ------------------------------------------------ */}
+                <div className="reveal mt-16">
+                    <h3 className="mb-8 text-center text-2xl font-semibold text-white">
+                        Fifty years, start to recovery
                     </h3>
-                    <p className="text-white/70 mb-8">
-                        While the ozone layer is healing, our efforts must
-                        continue. Learn more about how you can contribute to
-                        protecting our atmosphere.
+
+                    {/* One column with the years aligned in a gutter: denser
+                        than an alternating layout and far easier to scan. */}
+                    <ol className="relative mx-auto max-w-2xl">
+                        <span
+                            aria-hidden="true"
+                            className="absolute bottom-3 top-3 left-[3.6875rem] w-px bg-gradient-to-b from-ozone-400/60 via-white/15 to-aurora-400/60"
+                        />
+
+                        {TIMELINE.map((item, index) => (
+                            <li
+                                key={item.year}
+                                className="reveal group grid grid-cols-[3.25rem_1.5rem_1fr] items-start gap-x-3 py-2.5"
+                                style={
+                                    {
+                                        "--reveal-delay": `${index * 30}ms`,
+                                    } as React.CSSProperties
+                                }
+                            >
+                                <span className="pt-0.5 text-right font-mono text-sm font-semibold tabular-nums text-ozone-200">
+                                    {item.year}
+                                </span>
+
+                                <span
+                                    aria-hidden="true"
+                                    className="relative z-10 mt-1.5 grid size-6 place-items-center"
+                                >
+                                    <span className="size-2.5 rounded-full bg-ozone-400 ring-4 ring-space-900 transition-transform duration-300 group-hover:scale-125" />
+                                </span>
+
+                                <p className="pt-0.5 text-sm leading-relaxed text-white/70">
+                                    {item.event}
+                                </p>
+                            </li>
+                        ))}
+                    </ol>
+                </div>
+
+                {/* Call to action ------------------------------------------ */}
+                <div className="reveal mx-auto mt-16 max-w-2xl rounded-3xl border border-white/10 bg-gradient-to-b from-ozone-500/10 to-transparent p-8 text-center sm:p-10">
+                    <h3 className="text-2xl font-semibold text-white">
+                        Be part of the solution
+                    </h3>
+                    <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-white/65 sm:text-base">
+                        The layer is healing because the problem was taken
+                        seriously. Keep following the science — and the
+                        monitoring that keeps the treaty honest.
                     </p>
-                    <div className="flex flex-wrap justify-center gap-4">
+
+                    <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                         <Button
-                            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
-                            onClick={() =>
-                                window.open(
-                                    "https://www.unep.org/ozonaction/",
-                                    "_blank"
-                                )
-                            }
+                            asChild
+                            size="lg"
+                            className="h-11 rounded-full bg-white px-6 font-semibold text-space-900 hover:bg-ozone-100"
                         >
-                            <CheckCircle2 className="mr-2 h-4 w-4" />
-                            UNEP OzonAction
-                            <ExternalLink className="ml-2 h-3 w-3" />
+                            <a
+                                href="https://www.unep.org/ozonaction/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                UNEP OzonAction
+                                <ExternalLink
+                                    className="size-3.5"
+                                    aria-hidden="true"
+                                />
+                            </a>
                         </Button>
+
                         <Button
+                            asChild
+                            size="lg"
                             variant="outline"
-                            className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
-                            onClick={() =>
-                                window.open(
-                                    "https://ozonewatch.gsfc.nasa.gov/",
-                                    "_blank"
-                                )
-                            }
+                            className="h-11 rounded-full border-white/15 bg-white/[0.03] px-6 text-white hover:border-white/25 hover:bg-white/10 hover:text-white"
                         >
-                            NASA Ozone Watch
-                            <ExternalLink className="ml-2 h-3 w-3" />
+                            <a
+                                href="https://ozonewatch.gsfc.nasa.gov/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                NASA Ozone Watch
+                                <ExternalLink
+                                    className="size-3.5"
+                                    aria-hidden="true"
+                                />
+                            </a>
                         </Button>
                     </div>
                 </div>

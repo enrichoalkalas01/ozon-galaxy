@@ -1,0 +1,10 @@
+# Koneksi lambat/putus-putus: beri waktu & percobaan lebih untuk tarball besar
+fetchTimeout: 600000
+fetchRetries: 5
+fetchRetryMaxtimeout: 120000
+# Batasi unduhan paralel agar bandwidth tidak terbagi 16 arah
+networkConcurrency: 4
+
+# sharp dipakai Next.js untuk optimasi gambar; build script-nya perlu dijalankan
+allowBuilds:
+  sharp: true

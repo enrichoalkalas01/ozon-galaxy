@@ -1,48 +1,38 @@
 "use client";
+
 import React from "react";
-import { cn } from "@/lib/utils";
+import MoleculeDiagram, { type MoleculeSpec } from "./MoleculeDiagram";
 
 interface NitrogenOxideMoleculeProps {
     className?: string;
     showLabels?: boolean;
 }
 
+/** Nitrogen dioxide — bent, with the nitrogen at the apex. */
+const SPEC: MoleculeSpec = {
+    atoms: [
+        { symbol: "N", x: 50, y: 34, r: 15, color: "#6366f1", reactive: true },
+        { symbol: "O", x: 20, y: 68, r: 13, color: "#ef4444" },
+        { symbol: "O", x: 80, y: 68, r: 13, color: "#ef4444" },
+    ],
+    bonds: [
+        { from: 0, to: 1, double: true },
+        { from: 0, to: 2 },
+    ],
+    formula: "NO₂",
+    bondColor: "#a5b4fc",
+    labelColor: "#a5b4fc",
+};
+
 const NitrogenOxideMolecule: React.FC<NitrogenOxideMoleculeProps> = ({
     className,
     showLabels = true,
-}) => {
-    return (
-        <div className={cn("relative w-36 h-36", className)}>
-            <div className="flex items-center justify-center h-full">
-                {/* Nitrogen atom at center */}
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-purple-700 shadow-sm shadow-purple-500 z-10 flex items-center justify-center">
-                    <span className="text-lg text-white font-bold">N</span>
-                </div>
-
-                {/* Oxygen atoms on the tips of the V */}
-                <div className="absolute top-[15px] left-[15px] w-12 h-12 rounded-full bg-purple-500 shadow-sm shadow-purple-400 z-10 flex items-center justify-center">
-                    <span className="text-lg text-white font-bold">O</span>
-                </div>
-                <div className="absolute top-[15px] right-[15px] w-12 h-12 rounded-full bg-purple-500 shadow-sm shadow-purple-400 z-10 flex items-center justify-center">
-                    <span className="text-lg text-white font-bold">O</span>
-                </div>
-
-                {/* Single bond on left side */}
-                <div className="absolute top-[40px] left-[32px] h-1 w-[20px] bg-purple-400 transform rotate-[-45deg]"></div>
-
-                {/* Double bond on right side */}
-                <div className="absolute top-[38px] right-[32px] h-1 w-[20px] bg-purple-400 transform rotate-[45deg]"></div>
-                <div className="absolute top-[42px] right-[32px] h-1 w-[20px] bg-purple-400 transform rotate-[45deg]"></div>
-
-                {/* Label */}
-                {showLabels && (
-                    <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs font-medium text-purple-600">
-                        NO₂
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
+}) => (
+    <MoleculeDiagram
+        spec={SPEC}
+        className={className}
+        showLabels={showLabels}
+    />
+);
 
 export default NitrogenOxideMolecule;
