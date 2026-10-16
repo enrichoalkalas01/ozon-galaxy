@@ -1,0 +1,84 @@
+# ==============================================================
+# values.dev.yml
+# Project : ozon-galaxy
+# Pipeline: deployPipelineVaultEso  (chart: generic-app-vault)
+# Secrets : injected at runtime by External Secrets Operator (ESO)
+# ==============================================================
+
+appName: ozon-galaxy-dev
+namespace: portofolio
+replicaCount: 1
+
+image:
+    repository: 192.168.20.21/other/ozon-galaxy-dev
+    tag: "latest"
+    pullPolicy: Always
+
+imagePullSecrets:
+    - name: harbor-creds
+
+nameOverride: ""
+fullnameOverride: ""
+
+containerPort: 3000
+
+service:
+    type: NodePort
+    port: 3000
+    targetPort: 3000
+    nodePort: 31171 # OVERRIDDEN by the pipeline (param servicePort)
+
+ingress:
+    enabled: false
+
+probe:
+    enabled: true
+    liveness:
+        path: /
+        port: 3000
+    readiness:
+        path: /
+        port: 3000
+
+resources:
+    requests:
+        cpu: 50m
+        memory: 160Mi
+    limits:
+        cpu: 500m
+        memory: 512Mi
+
+autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 1
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+
+env:
+    - name: NODE_ENV
+      value: "production"
+
+vaultRuntime:
+    enabled: true
+    path: ozon-galaxy-dev # relative to the KV mount `portofolio/`
+    dataFrom: true
+    storeName: vault-backend
+    storeKind: ClusterSecretStore
+    refreshInterval: 1m
+
+envFrom: []
+
+volumeMounts: []
+volumes: []
+hostAliases: []
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podSecurityContext: {}
+securityContext: {}
+
+serviceAccount:
+    create: false
+    name: ""
+    annotations: {}
